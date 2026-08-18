@@ -1,0 +1,119 @@
+name: Release
+
+env:
+  BUILD_NAME: 'stalwart'
+  BUILD_REPO: "stalwartlabs/stalwart"
+  BUILD_REF: "d08305df2e865ccf8b0676fd63ebd37d25aef787"
+  PKG_VERSION: "v0.16.18"
+
+  # Preview mode: Publishes the build output as a CI artifact instead of creating
+  # a release, allowing for manual inspection of the output. This mode is
+  # activated if the CI run was triggered by events other than pushed tags, or
+  # if the repository is a fork.
+  preview: ${{ !startsWith(github.ref, 'refs/tags/') || github.repository != 'ci-prebuild/stalwart' }}
+
+on:
+  push:
+    tags:
+    - '[0-9]+.[0-9]+'
+    - '[0-9]+.[0-9]+.[0-9]+'
+    branches:
+    - 'patch/ci-release-*'
+    - 'main'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.build }}
+    env:
+      # Emit backtraces on panics.
+      RUST_BACKTRACE: 1
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false # don't fail other jobs if one fails
+      matrix:
+        build: [amd64, arm64]
+        include:
+        - build: amd64
+          # WARN: When changing this to a newer version, make sure that the GLIBC isnt too new, as this can cause issues
+          # with portablity on older systems that dont follow ubuntus more rapid release cadence.
+          os: ubuntu-22.04
+          rust: stable
+        - build: arm64
+          # Version should be kept in lockstep with the x86_64 version
+          os: ubuntu-22.04-arm
+          rust: stable
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ env.BUILD_REPO }}
+          ref: ${{ env.BUILD_REF }}
+      - name: Checkout  sources for packaging
+        uses: actions/checkout@v7
+        with:
+          path: "__CI_PREBUILD__"
+
+      # The rust-toolchain action ignores rust-toolchain.toml files.
+      # Removing this before building with cargo ensures that the rust-toolchain
+      # is considered the same between installation and usage.
+      - name: Remove the rust-toolchain.toml file
+        run: rm rust-toolchain.toml
+
+      - name: Install ${{ matrix.rust }} toolchain
+        uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master
+        with:
+          toolchain: ${{ matrix.rust }}
+
+      - name: Prepare paths
+        run: |
+          cat <<EOF >>$GITHUB_ENV
+          PKG_DEB=target/debian/${{ env.BUILD_NAME }}_${{ env.PKG_VERSION }}_${{ matrix.build }}.deb
+          PKG_TARBALL=${{ env.BUILD_NAME }}_${{ env.PKG_VERSION }}_${{ matrix.build }}.tar.xz
+          EOF
+
+      - name: Show command used for Cargo
+        run: |
+          echo "target flag is: ${{ env.TARGET_FLAGS }}"
+
+      - name: Build release binary
+        run: cargo build --release -p stalwart --no-default-features --features "sqlite"
+
+      - name: Copy binary to __CI_PREBUILD__/debian
+        run: |
+          mkdir -p __CI_PREBUILD__/debian/usr/local/bin
+          cp target/release/stalwart CI_PREBUILD__/debian/usr/local/bin/${{ env.BUILD_NAME }}
+
+      - name: Build deb for ${{ matrix.build }}
+        uses: jiro4989/build-deb-action@86e86ceb88b13157fa569663d43c89346505fc3e
+        with:
+          package: ${{ env.BUILD_NAME }}
+          package_root: __CI_PREBUILD__/debian
+          maintainer: selfhoster1312
+          version: ${{ env.PKG_VERSION }}
+          arch: ${{ matrix.build }}
+        id: build-deb-amd64
+
+      - name: Upload ${{ env.PKG_DEB }} to artifacts
+        uses: actions/upload-artifact@v7
+        if: env.preview == 'true'
+        with:
+          path: ${{ env.PKG_DEB }}
+          archive: false
+          if-no-files-found: error
+
+      - name: Upload ${{ env.PKG_DEB }} to release
+        uses: svenstaro/upload-release-action@29e53e917877a24fad85510ded594ab3c9ca12de # 2.11.5
+        if: env.preview == 'false'
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ env.PKG_DEB }}
+          tag: ${{ github.ref_name }}
+          overwrite: true

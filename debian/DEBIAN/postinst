@@ -1,0 +1,6 @@
+adduser --group --system stalwart
+mkdir -p /var/lib/stalwart
+chown -R stalwart: /var/lib/stalwart
+mkdir -p /var/log/stalwart
+chown -R stalwart: /var/log/stalwart
+systemctl daemon-reload
