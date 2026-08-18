@@ -1,0 +1,7 @@
+source = "github-release"
+github_repo = "stalwartlabs/stalwart"
+
+# source = "branch"
+# branch = "main"
+# repo = "https://github.com/stalwartlabs/stalwart"
+# github_repo = "stalwartlabs/stalwart"

@@ -3,8 +3,9 @@ name: Release
 env:
   BUILD_NAME: 'stalwart'
   BUILD_REPO: "stalwartlabs/stalwart"
-  BUILD_REF: "d08305df2e865ccf8b0676fd63ebd37d25aef787"
-  PKG_VERSION: "v0.16.18"
+  BUILD_CHECKOUT: "v0.16.18"
+  BUILD_VERSION: "2026.08.18"
+  BUILD_COMMIT: "d08305df2e865ccf8b0676fd63ebd37d25aef787"
 
   # Preview mode: Publishes the build output as a CI artifact instead of creating
   # a release, allowing for manual inspection of the output. This mode is
@@ -55,7 +56,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: ${{ env.BUILD_REPO }}
-          ref: ${{ env.BUILD_REF }}
+          ref: ${{ env.BUILD_CHECKOUT }}
       - name: Checkout  sources for packaging
         uses: actions/checkout@v7
         with:
@@ -75,8 +76,8 @@ jobs:
       - name: Prepare paths
         run: |
           cat <<EOF >>$GITHUB_ENV
-          PKG_DEB=target/debian/${{ env.BUILD_NAME }}_${{ env.PKG_VERSION }}_${{ matrix.build }}.deb
-          PKG_TARBALL=${{ env.BUILD_NAME }}_${{ env.PKG_VERSION }}_${{ matrix.build }}.tar.xz
+          PKG_DEB=target/debian/${{ env.BUILD_NAME }}_${{ env.BUILD_VERSION }}_${{ matrix.build }}.deb
+          PKG_TARBALL=${{ env.BUILD_NAME }}_${{ env.BUILD_VERSION }}_${{ matrix.build }}.tar.xz
           EOF
 
       - name: Show command used for Cargo
@@ -97,7 +98,7 @@ jobs:
           package: ${{ env.BUILD_NAME }}
           package_root: __CI_PREBUILD__/debian
           maintainer: selfhoster1312
-          version: ${{ env.PKG_VERSION }}
+          version: ${{ env.BUILD_VERSION }}
           arch: ${{ matrix.build }}
         id: build-deb-amd64
 
