@@ -62,24 +62,30 @@ jobs:
         with:
           path: "__CI_PREBUILD__"
 
-      - name: Prepare paths
-        run: |
-          cat <<EOF >>$GITHUB_ENV
-          PKG_DEB=target/debian/${{ env.BUILD_NAME }}_${{ env.BUILD_VERSION }}_${{ matrix.build }}.deb
-          PKG_TARBALL=${{ env.BUILD_NAME }}_${{ env.BUILD_VERSION }}_${{ matrix.build }}.tar.xz
-          EOF
-
       - name: Show command used for Cargo
         run: |
           echo "target flag is: ${{ env.TARGET_FLAGS }}"
 
+      - name: restore cached binary 
+        uses: actions/cache@v4
+        with:
+          key: ${{ matrix.build }}
+          restore-keys: ${{ matrix.build }}
+          path: target
+
       - name: Build release binary
         run: cargo build --release -p stalwart --no-default-features --features "sqlite"
+
+      - name: cache binary 
+        uses: actions/cache@v4
+        with:
+          key: ${{ matrix.build }}
+          path: target
 
       - name: Copy binary to __CI_PREBUILD__/debian
         run: |
           mkdir -p __CI_PREBUILD__/debian/usr/local/bin
-          cp target/release/stalwart __CI_PREBUILD__/debian/usr/local/bin/${{ env.BUILD_NAME }}
+          cp target/release/stalwart __CI_PREBUILD__/debian/usr/local/bin/${{ env.BUILD_NAME }} 
 
       - name: Build deb for ${{ matrix.build }}
         uses: jiro4989/build-deb-action@86e86ceb88b13157fa569663d43c89346505fc3e
@@ -89,21 +95,20 @@ jobs:
           maintainer: selfhoster1312
           version: ${{ env.BUILD_VERSION }}
           arch: ${{ matrix.build }}
-        id: build-deb-amd64
+        id: build-deb
 
-      - name: Upload ${{ env.PKG_DEB }} to artifacts
-        uses: actions/upload-artifact@v7
-        if: env.preview == 'true'
-        with:
-          path: ${{ env.PKG_DEB }}
-          archive: false
-          if-no-files-found: error
-
-      - name: Upload ${{ env.PKG_DEB }} to release
+      - name: Upload deb to release
         uses: svenstaro/upload-release-action@29e53e917877a24fad85510ded594ab3c9ca12de # 2.11.5
         if: env.preview == 'false'
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ env.PKG_DEB }}
+          file: ${{ steps.build-deb.outputs.file_name }}
           tag: ${{ github.ref_name }}
           overwrite: true
+
+      - name: Upload deb as artifact
+        uses: actions/upload-artifact@v7
+        if: env.preview == 'true'
+        with:
+          path: ${{ steps.build-deb.outputs.file_name }}
+          archive: false
