@@ -62,17 +62,6 @@ jobs:
         with:
           path: "__CI_PREBUILD__"
 
-      # The rust-toolchain action ignores rust-toolchain.toml files.
-      # Removing this before building with cargo ensures that the rust-toolchain
-      # is considered the same between installation and usage.
-      - name: Remove the rust-toolchain.toml file
-        run: rm rust-toolchain.toml
-
-      - name: Install ${{ matrix.rust }} toolchain
-        uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master
-        with:
-          toolchain: ${{ matrix.rust }}
-
       - name: Prepare paths
         run: |
           cat <<EOF >>$GITHUB_ENV
@@ -90,7 +79,7 @@ jobs:
       - name: Copy binary to __CI_PREBUILD__/debian
         run: |
           mkdir -p __CI_PREBUILD__/debian/usr/local/bin
-          cp target/release/stalwart CI_PREBUILD__/debian/usr/local/bin/${{ env.BUILD_NAME }}
+          cp target/release/stalwart __CI_PREBUILD__/debian/usr/local/bin/${{ env.BUILD_NAME }}
 
       - name: Build deb for ${{ matrix.build }}
         uses: jiro4989/build-deb-action@86e86ceb88b13157fa569663d43c89346505fc3e
