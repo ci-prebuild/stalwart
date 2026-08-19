@@ -50,7 +50,6 @@ jobs:
           # Version should be kept in lockstep with the x86_64 version
           os: ubuntu-22.04-arm
           rust: stable
-
     steps:
       - name: Checkout sources
         uses: actions/checkout@v7
@@ -66,26 +65,51 @@ jobs:
         run: |
           echo "target flag is: ${{ env.TARGET_FLAGS }}"
 
-      - name: restore cached binary 
+      - name: restore cached compiled stuff 
         uses: actions/cache@v4
         with:
           key: ${{ matrix.build }}
-          restore-keys: ${{ matrix.build }}
           path: target
 
       - name: Build release binary
         run: cargo build --release -p stalwart --no-default-features --features "sqlite"
 
-      - name: cache binary 
+      - name: cache compiled stuff 
         uses: actions/cache@v4
         with:
           key: ${{ matrix.build }}
           path: target
 
-      - name: Copy binary to __CI_PREBUILD__/debian
+      - name: cache binary 
+        uses: actions/cache@v4
+        with:
+          key: ${{ env.BUILD_NAME }}.${{ matrix.build }}.binary
+          path: target/release/${{ env.BUILD_NAME }}
+  
+  packaging:
+    runs-on: ubuntu-latest
+    name: packaging ${{ matrix.build }} binary
+    strategy:
+      fail-fast: false # don't fail other jobs if one fails
+      matrix:
+        build: [amd64, arm64]
+  
+    steps:
+
+      - name: Checkout  sources for packaging
+        uses: actions/checkout@v7
+        with:
+          path: "__CI_PREBUILD__"
+
+      - name: create path __CI_PREBUILD__/debian/usr/local/bin
         run: |
           mkdir -p __CI_PREBUILD__/debian/usr/local/bin
-          cp target/release/stalwart __CI_PREBUILD__/debian/usr/local/bin/${{ env.BUILD_NAME }} 
+
+      - name: restore cached ${{ matrix.build }} binary
+        uses: actions/cache@v4
+        with:
+          key: ${{ env.BUILD_NAME }}.${{ matrix.build }}.binary
+          path: __CI_PREBUILD__/debian/usr/local/bin/${{ env.BUILD_NAME }}
 
       - name: Build deb for ${{ matrix.build }}
         uses: jiro4989/build-deb-action@86e86ceb88b13157fa569663d43c89346505fc3e
