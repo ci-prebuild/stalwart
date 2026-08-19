@@ -63,29 +63,25 @@ jobs:
 
       - name: Show command used for Cargo
         run: |
-          echo "target flag is: ${{ env.TARGET_FLAGS }}"
+          echo "target flag is: ${{ env.TARGET_FLAGS }}"          
 
       - name: restore cached compiled stuff 
-        uses: actions/cache@v4
+        uses: actions/cache@v6.1.0
+        id: cached-compiled-stuff
         with:
-          key: ${{ matrix.build }}
-          path: target
+          key: ${{ matrix.build }}-${{ github.sha }}
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          restore-keys: |
+            ${{ matrix.build }}-
 
       - name: Build release binary
-        run: cargo build --release -p stalwart --no-default-features --features "sqlite"
+        run: cargo build --release -p ${{ env.BUILD_NAME }} --no-default-features --features "sqlite"
 
-      - name: cache compiled stuff 
-        uses: actions/cache@v4
-        with:
-          key: ${{ matrix.build }}
-          path: target
-
-      - name: cache binary 
-        uses: actions/cache@v4
-        with:
-          key: ${{ env.BUILD_NAME }}.${{ matrix.build }}.binary
-          path: target/release/${{ env.BUILD_NAME }}
-  
   packaging:
     runs-on: ubuntu-latest
     name: packaging ${{ matrix.build }} binary
@@ -93,7 +89,7 @@ jobs:
       fail-fast: false # don't fail other jobs if one fails
       matrix:
         build: [amd64, arm64]
-  
+    needs: build
     steps:
 
       - name: Checkout  sources for packaging
@@ -101,16 +97,18 @@ jobs:
         with:
           path: "__CI_PREBUILD__"
 
+      - name: restore cached ${{ matrix.build }} binary
+        uses: actions/cache/restore@v6.1.0
+        with:
+          key: ${{ matrix.build }}-${{ github.sha }}
+          path: |
+            target/
+
       - name: create path __CI_PREBUILD__/debian/usr/local/bin
         run: |
           mkdir -p __CI_PREBUILD__/debian/usr/local/bin
-
-      - name: restore cached ${{ matrix.build }} binary
-        uses: actions/cache@v4
-        with:
-          key: ${{ env.BUILD_NAME }}.${{ matrix.build }}.binary
-          path: __CI_PREBUILD__/debian/usr/local/bin/${{ env.BUILD_NAME }}
-
+          cp target/release/${{ env.BUILD_NAME }} _CI_PREBUILD__/debian/usr/local/bin/${{ env.BUILD_NAME }}
+    
       - name: Build deb for ${{ matrix.build }}
         uses: jiro4989/build-deb-action@86e86ceb88b13157fa569663d43c89346505fc3e
         with:
