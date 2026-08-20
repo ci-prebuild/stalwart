@@ -1,7 +1,7 @@
 name: Release
 
 env:
-  BUILD_NAME: 'stalwart'
+  BUILD_NAME: "stalwart"
   BUILD_REPO: "stalwartlabs/stalwart"
   BUILD_CHECKOUT: "v0.16.18"
   BUILD_VERSION: "2026.08.18"
