@@ -11,7 +11,7 @@ KillSignal=SIGINT
 Restart=on-failure
 RestartSec=5
 EnvironmentFile=/etc/stalwart/stalwart.env
-ExecStart=/usr/bin/stalwart --config=/etc/stalwart/config.json
+ExecStart=/usr/local/bin/stalwart --config=/etc/stalwart/config.json
 SyslogIdentifier=stalwart
 User=stalwart
 Group=stalwart
