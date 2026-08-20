@@ -81,8 +81,6 @@ jobs:
           key: ${{ matrix.build }}-${{ github.sha }}
           path: |
             target/release/${{ env.BUILD_NAME }}
-          restore-keys: |
-            ${{ matrix.build }}-
 
   packaging:
     runs-on: ubuntu-latest
@@ -112,7 +110,7 @@ jobs:
           ls -al target
           ls -al target/release
           mkdir -p __CI_PREBUILD__/debian/usr/local/bin
-          cp target/release/${{ env.BUILD_NAME }} _CI_PREBUILD__/debian/usr/local/bin/${{ env.BUILD_NAME }}
+          cp target/release/${{ env.BUILD_NAME }} __CI_PREBUILD__/debian/usr/local/bin/${{ env.BUILD_NAME }}
     
       - name: Build deb for ${{ matrix.build }}
         uses: jiro4989/build-deb-action@86e86ceb88b13157fa569663d43c89346505fc3e
