@@ -45,11 +45,10 @@ jobs:
           # WARN: When changing this to a newer version, make sure that the GLIBC isnt too new, as this can cause issues
           # with portablity on older systems that dont follow ubuntus more rapid release cadence.
           os: ubuntu-22.04
-          rust: stable
+          #rust: stable
         - build: arm64
-          # Version should be kept in lockstep with the x86_64 version
           os: ubuntu-22.04-arm
-          rust: stable
+          #rust: stable
     steps:
       - name: Checkout sources
         uses: actions/checkout@v7
@@ -61,6 +60,12 @@ jobs:
         with:
           path: "__CI_PREBUILD__"
 
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          # Pin the toolchain version explicitly.
+          toolchain: stable
+
       - name: Show command used for Cargo
         run: |
           echo "target flag is: ${{ env.TARGET_FLAGS }}"          
@@ -71,11 +76,9 @@ jobs:
         with:
           key: ${{ matrix.build }}-${{ github.sha }}
           path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
           restore-keys: |
             ${{ matrix.build }}-
 
