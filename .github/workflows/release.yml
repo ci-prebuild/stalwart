@@ -64,14 +64,18 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           # Pin the toolchain version explicitly.
-          toolchain: stable     
+          toolchain: stable
 
-      - name: restore cached compiled stuff 
-        uses: kunobi-ninja/kache-action@v1
+      - name: restore cached ${{ matrix.build }} binary
+        id: restore
+        uses: actions/cache/restore@v6.1.0
         with:
-          cache-executables: true
+          key: ${{ matrix.build }}-${{ github.sha }}
+          path: |
+            target/release/${{ env.BUILD_NAME }}
 
       - name: Build release binary
+        if: steps.restore.outputs.cache-hit != 'true'
         run: cargo build --release -p ${{ env.BUILD_NAME }} --no-default-features --features "sqlite"
 
       - name: cache compiled stuff 
