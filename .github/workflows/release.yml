@@ -64,26 +64,25 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           # Pin the toolchain version explicitly.
-          toolchain: stable
-
-      - name: Show command used for Cargo
-        run: |
-          echo "target flag is: ${{ env.TARGET_FLAGS }}"          
+          toolchain: stable     
 
       - name: restore cached compiled stuff 
-        uses: actions/cache@v6.1.0
-        id: cached-compiled-stuff
+        uses: kunobi-ninja/kache-action@v1
         with:
-          key: ${{ matrix.build }}-${{ github.sha }}
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          restore-keys: |
-            ${{ matrix.build }}-
+          cache-executables: true
 
       - name: Build release binary
         run: cargo build --release -p ${{ env.BUILD_NAME }} --no-default-features --features "sqlite"
+
+      - name: cache compiled stuff 
+        uses: actions/cache/save@v6.1.0
+        id: cache-binary
+        with:
+          key: ${{ matrix.build }}-${{ github.sha }}
+          path: |
+            target/release/${{ env.BUILD_NAME }}
+          restore-keys: |
+            ${{ matrix.build }}-
 
   packaging:
     runs-on: ubuntu-latest
@@ -105,10 +104,13 @@ jobs:
         with:
           key: ${{ matrix.build }}-${{ github.sha }}
           path: |
-            target/
+            target/release/${{ env.BUILD_NAME }}
 
       - name: create path __CI_PREBUILD__/debian/usr/local/bin
         run: |
+          ls -al
+          ls -al target
+          ls -al target/release
           mkdir -p __CI_PREBUILD__/debian/usr/local/bin
           cp target/release/${{ env.BUILD_NAME }} _CI_PREBUILD__/debian/usr/local/bin/${{ env.BUILD_NAME }}
     
