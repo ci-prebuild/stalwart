@@ -3,9 +3,9 @@ name: Release
 env:
   BUILD_NAME: "stalwart"
   BUILD_REPO: "stalwartlabs/stalwart"
-  BUILD_CHECKOUT: "v0.16.22"
-  BUILD_VERSION: "2026.09.14"
-  BUILD_COMMIT: "474dd0229cb20cf513036619781ed97bd8073c3f"
+  BUILD_CHECKOUT: "v1.0.0"
+  BUILD_VERSION: "2026.10.26"
+  BUILD_COMMIT: "47df4c0baeb88d83424dfda6aa7cf6040706999e"
 
   # Preview mode: Publishes the build output as a CI artifact instead of creating
   # a release, allowing for manual inspection of the output. This mode is
